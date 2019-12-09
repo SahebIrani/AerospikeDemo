@@ -1,0 +1,7 @@
+﻿https://hub.docker.com/r/aerospike/aerospike-server
+docker pull aerospike/aerospike-server
+docker run -tid --name aerospike -p 3000:3000 -p 3001:3001 -p 3002:3002 -p 3003:3003 aerospike/aerospike-server
+
+https://www.aerospike.com/docs/deploy_guides/docker/
+
+https://www.aerospike.com/docs/client/csharp/start/index.html

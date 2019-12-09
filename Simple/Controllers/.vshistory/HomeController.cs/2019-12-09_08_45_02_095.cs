@@ -1,0 +1,87 @@
+using System;
+using System.Diagnostics;
+
+using Aerospike.Client;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+using Simple.Models;
+
+namespace Simple.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly ILogger<HomeController> _logger;
+
+        public HomeController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            static void LogCallback(Log.Level level, string message) =>
+                Console.WriteLine(DateTime.Now.ToString() + ' ' + level + ' ' + message);
+
+            Log.SetLevel(Log.Level.INFO);
+            Log.SetCallback(LogCallback);
+
+            AsyncClient clientA = new AsyncClient("127.0.0.1", 3000);
+            AerospikeClient client = new AerospikeClient("127.0.0.1", 3000);
+
+            try
+            {
+                WritePolicy policyW = new WritePolicy();
+                Policy policy = new Policy();
+                policyW.SetTimeout(50);
+                policy.SetTimeout(0);
+
+                string ns = "test";
+                string set = "demoset";
+                string indexName = "queryindexint";
+                string keyPrefix = "querykeyint";
+                string binName = "querybinint";
+                int size = 50;
+
+                Policy policy = new Policy();
+                policy.timeout = 0; // Do not timeout on index create.
+                IndexTask task = client.CreateIndex(policy, ns, set, indexName, binName, IndexType.NUMERIC);
+                task.Wait();
+
+                // Write a single value.
+                Key key = new Key("test", "myset", "mykey");
+                Bin bin = new Bin("mybin", "myvalue");
+                clientA.Put(policy, key, bin);
+
+                for (int i = 1; i <= 1000; i++)
+                {
+                    Key key = new Key(ns, set, keyPrefix + i);
+                    Bin bin = new Bin(binName, i);
+                    client.Put(policy, key, bin);
+                }
+            }
+            catch (AerospikeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                client.Close();
+            }
+
+            return View();
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}
